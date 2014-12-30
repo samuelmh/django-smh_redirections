@@ -1,0 +1,240 @@
+<!--
+  AUTHOR: Samuel M.H. <samuel.mh@gmail.com>
+-->
+{% extends "base.html" %}
+{% load staticfiles %}
+
+{% block title %}Redirections{% endblock %}
+
+{% block one_column %}
+<div class="row">
+    <span class="h1 col-xs-6">Redirections</span>
+    <p class="text-right col-xs-6"><a href="{% url "smh_redirections:help" %}" target="_blank"><span class="glyphicon glyphicon-question-sign"></span> Help</a><p/>
+</div>
+<hr/>
+
+
+{% verbatim %}
+<div ng-app="smh_redirections_app" ng-controller="smh_redirections_ctrl">
+
+
+<div class="panel panel-default">
+
+
+  <div class="panel-heading">
+    <h2 class="panel-title">
+        <a data-toggle="collapse" data-target="#form_panel" aria-expanded="false">
+        <div ng-if="form.mode=='add'">
+            <span class="glyphicon glyphicon-plus-sign"></span> Add a redirection
+        </div>
+        <div ng-if="form.mode=='modify'">
+            <span class="glyphicon glyphicon-cog"></span> Modify a redirection
+        </div>
+        </a>
+    </h2>
+  </div>
+  
+  
+  <div class="panel-body collapse" id="form_panel">
+    
+    <form class="form-horizontal" id="redirection_form" role="form">
+      
+      <div class="form-group">
+        <label for="input_alias" class="col-sm-2 control-label">Alias</label>
+          <div class="col-sm-9">
+            <input id="input_alias"  type="text" class="form-control" placeholder="Alias" title='Name for your redirection.' required ng-disabled="form.mode == 'modify'"  ng-model="form.redirection.alias">
+          </div>
+      </div>
+  
+      <div class="form-group">
+        <label for="input_url" class="col-sm-2 control-label">URL</label>
+          <div class="col-sm-9">
+            <input id="input_url" type="url" class="form-control" placeholder="URL" title='Destiny URL.' required ng-model="form.redirection.url">
+          </div>
+      </div>
+  
+      <div class="form-group">
+        <label for="input_password" class="col-sm-2 control-label">Password</label>
+        <div class="col-sm-9">
+          <input id="input_password" type="password" class="form-control" placeholder="Password" title='Password for URL updates.' ng-model="form.redirection.password">
+        </div>
+      </div>
+  
+  
+      <div class="form-group">
+        <label for="input_public" class="col-sm-2  control-label">Public</label>
+        <div class="col-sm-9" class="checkbox">
+          <input id="input_public" type="checkbox" ng-model="form.redirection.public">
+        </div>
+      </div>    
+    
+
+      <p class="text-center">
+        <button type="button" class="btn btn-default col-xs-2 col-xs-offset-3" ng-click="form.reset()">Cancel</button>
+        <button type="submit" class="btn btn-primary col-xs-2 col-xs-offset-2" ng-click="form.submit()">
+          <div ng-if="form.mode=='add'">Add</div>        
+          <div ng-if="form.mode=='modify'">Modify</div>
+        </button>
+      </p>
+</form> 
+ </div>
+</div>
+
+
+
+
+<h2>List</h2>
+<table class="table table-hover">
+  <thead>
+    <tr>
+      <th class="col-md-2"><a href="" ng-click="sort.sort('alias')">Alias</a></th>
+      <th class="col-md-4"><a href="" ng-click="sort.sort('url')">URL</a></th>
+      <th class="col-md-1 text-right"><a href="" ng-click="sort.sort('prints')">Visits</a></th>
+      <th class="col-md-1 text-center"><a href="" ng-click="sort.sort('public')">Public</a></th>
+      <th class="col-md-2 text-center"><a href="" ng-click="sort.sort('last_refresh')">Last refresh</a></th>
+      <th class="col-md-1 text-right"><a class="text-right" href="" ng-click="table.refresh()" title="Refresh"><span class="glyphicon glyphicon-refresh"></span></a></th>
+    </tr>
+  </thead>
+  <tbody id="smh_redirections_list" >
+    <tr ng-repeat="redirection in redirections | filter:query | orderBy:sort.field:sort.reverse" id="{{redirection.alias}}">
+      <td>{{redirection.alias}}</td>
+      <td><a href="{{redirection.url}}" target="_blank">{{redirection.url}}</a></td>
+      <td class="text-right">{{redirection.prints}}</td>
+      <td class="text-center"><span ng-class="redirection.public ? 'glyphicon glyphicon-ok' : '' "></span></td>
+      <td class="text-center">{{redirection.last_refresh | date:'yyyy/MM/dd  HH:mm'}}</td>
+      <td class="text-right">
+        <a href="" ng-click="form.fill_modify(redirection)" title="Options">
+          <span class="glyphicon glyphicon-cog"></span>
+        </a>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <a class="text-right" href="" ng-click="table.delete(redirection.alias)" title="Delete">
+          <span class="glyphicon glyphicon-trash"></span>
+        </a>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+
+</div>
+{% endverbatim %}
+
+
+{% endblock %}
+
+
+
+{% block js %}
+<script src="{% static 'smh_lab/js/angular.min.js' %}"></script>
+
+<script>
+  
+  function copy_fields(fields, origin, destiny){
+    fields.forEach(function(f){
+        destiny[f] = origin[f];
+    });
+  }
+
+  
+  var smh_redirections_app = angular.module('smh_redirections_app',[]);
+  
+  smh_redirections_app.controller(
+    'smh_redirections_ctrl',
+    function($scope, $http){
+
+        //Constants
+        $scope.username = '{{username}}';
+        $scope.API = '{% url 'smh_redirections:api:endpoint' %}'+$scope.username; //API URL
+        
+        //Model
+        $scope.redirections = null;
+        
+        //API credentials
+        $http.get('{% url 'jwt_session' %}').success(
+            function (data){
+                $http.defaults.headers.common.Authorization = data['jwt'];
+                $scope.table.refresh(); //First display
+            }
+        );
+        
+        
+        //Sort preferences
+        $scope.sort = {
+            field   :  'alias',
+            reverse :  false,
+            sort    :  function(field){
+                $scope.sort.reverse = ($scope.sort.field == field)?!$scope.sort.reverse:false;
+                $scope.sort.field = field;
+            }
+        }
+        
+        //Form add/modify
+        $scope.form = {
+            mode: 'add', //add/modify
+            redirection_reference : null,
+            redirection: {alias:'',url:'',password:'',public:false},
+            reset: function(){
+                $scope.form.redirection = {alias:'',url:'',password:'',public:false};
+                $('#form_panel').collapse('hide');
+                $scope.form.mode = 'add';
+            },
+            fill_modify: function(redirection){
+                $scope.form.redirection_reference = redirection;
+                $scope.form.redirection = {}
+                copy_fields(
+                    ['alias','url','password','public'],
+                    redirection,
+                    $scope.form.redirection
+                );
+                $('#form_panel').collapse('show');
+                $scope.form.mode = 'modify';
+            },
+            submit: function(){
+                $http.put($scope.API+'/'+$scope.form.redirection.alias, $scope.form.redirection).success(
+                    function(data){
+                        $scope.form.redirection.last_refresh = new Date();
+                        $scope.form.redirection.prints = 0;
+                        if ($scope.form.mode=='add'){
+                            $scope.redirections.push($scope.form.redirection);
+                        } else {
+                            copy_fields (
+                                ['url','password','public','prints','last_refresh'],
+                                $scope.form.redirection,
+                                $scope.form.redirection_reference
+                            );
+                        }
+                        $scope.form.reset();
+                    }
+                );
+            }
+        }
+        
+        
+        $scope.table = {
+            refresh : function(){
+                $("#smh_redirections_list").hide();
+                $http.get($scope.API).success(
+                    function (data){
+                        $scope.redirections = data['redirections'];
+                        $("#smh_redirections_list").fadeIn();
+                        console.log(data);
+                    }
+                ); 
+            },
+            delete : function(alias){
+                $http.delete($scope.API+'/'+alias).success(
+                    function (data){
+                        $('#'+alias).fadeOut();      
+                    }
+                ); 
+            }
+        }
+        
+            
+    }
+  );
+</script>
+{% endblock %}
+
+
+
