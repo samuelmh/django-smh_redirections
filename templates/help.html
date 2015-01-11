@@ -100,7 +100,7 @@
         </li>
         <li>Refresh the table in the web interface. If everything is correct, you will see the URL of the 'raspberry' redirection has changed. The curl command is correct.</li>
         <li>In the raspberry Pi, execute <mark>$ sudo crontab -e</mark> and add the followig line at the end of the file.<br/>
-          <mark>0-59/10 * * * * --data "password=MyP455W0rD" http://&lt;path to redirections&gt;/john/raspberry</mark>
+          <mark>0-59/10 * * * * curl --data "password=MyP455W0rD" http://&lt;path to redirections&gt;/john/raspberry</mark>
         </li>        
         <li>Wait 10 minutes and refresh the table in the web interface. If everything is correct, you will see the URL for the 'raspberry' redirection has changed. You have finished the configuration.</li>
     </ul>
